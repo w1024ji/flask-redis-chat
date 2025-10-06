@@ -4,54 +4,70 @@
     <meta charset="UTF-8">
     <title>Flask-Redis Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; }
+        body { font-family: Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        header { padding: 10px; background: #333; color: white; display: flex; justify-content: space-between; align-items: center; }
+        header a { color: white; text-decoration: none; padding: 8px 15px; background: #555; border-radius: 5px; }
+        #chat-window { flex-grow: 1; overflow-y: auto; padding: 10px; }
         #messages { list-style-type: none; margin: 0; padding: 0; }
         #messages li { padding: 8px 12px; }
         #messages li:nth-child(odd) { background: #eee; }
+        #chat-form { display: flex; padding: 10px; }
+        #message-input { flex-grow: 1; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
+        #chat-form button { margin-left: 10px; padding: 10px 20px; }
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
-    <h1>Flask Real-Time Chat</h1>
-    
-    <ul id="messages"></ul>
+    <header>
+        <h1>Flask Real-Time Chat</h1>
+        <div>
+            {% if user.is_authenticated %}
+                <span>Welcome, {{ user.nickname }}!</span>
+                <a href="/logout">Logout</a>
+            {% else %}
+                <a href="/login/google">Login with Google</a>
+            {% endif %}
+        </div>
+    </header>
+
+    <div id="chat-window">
+        <ul id="messages"></ul>
+    </div>
     
     <form id="chat-form" action="">
-        <input id="message-input" autocomplete="off" /><button>Send</button>
+        {% if user.is_authenticated %}
+            <input id="message-input" autocomplete="off" placeholder="Enter message..." /><button>Send</button>
+        {% else %}
+            <input id="message-input" autocomplete="off" placeholder="Please log in to chat" disabled /><button disabled>Send</button>
+        {% endif %}
     </form>
     
     <script>
-        // Create a new WebSocket connection to the server
         const socket = io();
-
-        const form = document.getElementById('chat-form');
-        const input = document.getElementById('message-input');
-        const messages = document.getElementById('messages');
-
-        // This code runs when the connection is successfully established
-        socket.on('connect', () => {
-            console.log('Successfully connected to the server!');
-        });
         
-        form.addEventListener('submit', (e) => {
-            // Prevent the default form submission (which reloads the page)
-            e.preventDefault();
+        // 로그인 상태일 때만 메시지 폼 이벤트를 설정합니다.
+        {% if user.is_authenticated %}
+            const form = document.getElementById('chat-form');
+            const input = document.getElementById('message-input');
             
-            // Send the message to the server
-            if (input.value) {
-                socket.emit('chat message', input.value);
-                input.value = ''; // Clear the input box
-            }
-        });
-        
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (input.value) {
+                    socket.emit('chat message', input.value);
+                    input.value = '';
+                }
+            });
+        {% endif %}
+
+        const messages = document.getElementById('messages');
+        const chatWindow = document.getElementById('chat-window');
+
         socket.on('chat message', (msg) => {
             const item = document.createElement('li');
             item.textContent = msg;
             messages.appendChild(item);
-            window.scrollTo(0, document.body.scrollHeight);
+            chatWindow.scrollTop = chatWindow.scrollHeight;
         });
     </script>
 </body>
 </html>
-
-
