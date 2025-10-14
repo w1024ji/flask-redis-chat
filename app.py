@@ -4,6 +4,7 @@ import os
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, current_user, login_required
 from flask_dance.contrib.google import make_google_blueprint, google
+from flask_dance.contrib.github import make_github_blueprint, github
 from dotenv import load_dotenv
 
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
@@ -24,13 +25,21 @@ login_manager = LoginManager()
 login_manager.init_app(app)
 
 # --- Flask-Dance Google OAuth Setup ---
-blueprint = make_google_blueprint(
+google_bp = make_google_blueprint(
     client_id=os.getenv("GOOGLE_OAUTH_CLIENT_ID"),
     client_secret=os.getenv("GOOGLE_OAUTH_CLIENT_SECRET"),
     scope=["openid", "https://www.googleapis.com/auth/userinfo.email", "https://www.googleapis.com/auth/userinfo.profile"],
     redirect_url="/google/authorized" 
 )
-app.register_blueprint(blueprint, url_prefix="/login")
+app.register_blueprint(google_bp, url_prefix="/login")
+
+# --- NEW: Flask-Dance GitHub OAuth Setup ---
+github_bp = make_github_blueprint(
+    client_id=os.getenv("GITHUB_OAUTH_CLIENT_ID"),
+    client_secret=os.getenv("GITHUB_OAUTH_CLIENT_SECRET"),
+    redirect_url="/github/authorized"
+)
+app.register_blueprint(github_bp, url_prefix="/login")
 
 # --- 모델 정의 ---
 class User(UserMixin, db.Model):
@@ -57,12 +66,31 @@ def google_authorized():
     assert resp.ok, resp.text
     user_info = resp.json()
 
-    user = User.query.filter_by(social_id=user_info['id']).first()
+    user = User.query.filter_by(social_id=f"google_{user_info['id']}").first()
     if not user:
-        user = User(social_id=user_info['id'], nickname=user_info['name'])
+        user = User(social_id=f"google_{user_info['id']}", nickname=user_info['name'])
         db.session.add(user)
         db.session.commit()
     
+    login_user(user)
+    return redirect(url_for("home"))
+
+# --- NEW: GitHub Authorization Route ---
+@app.route('/github/authorized')
+def github_authorized():
+    if not github.authorized:
+        return redirect(url_for("home"))
+
+    resp = github.get("/user")
+    assert resp.ok, resp.text
+    user_info = resp.json()
+
+    user = User.query.filter_by(social_id=f"github_{user_info['id']}").first()
+    if not user:
+        user = User(social_id=f"github_{user_info['id']}", nickname=user_info['login'])
+        db.session.add(user)
+        db.session.commit()
+
     login_user(user)
     return redirect(url_for("home"))
 
