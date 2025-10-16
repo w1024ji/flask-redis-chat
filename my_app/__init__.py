@@ -13,9 +13,6 @@ login_manager = LoginManager()
 socketio = SocketIO()
 
 def create_app():
-    """
-    Application factory function.
-    """
     app = Flask(__name__, instance_relative_config=True, template_folder='../templates')
 
     # --- Configuration ---
