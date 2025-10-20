@@ -19,7 +19,7 @@ def create_app():
     class Config:
         SECRET_KEY = os.urandom(24)
         basedir = os.path.abspath(os.path.dirname(__file__))
-        SQLALCHEMY_DATABASE_URI = 'sqlite:///' + os.path.join(app.instance_path, 'chat.db')
+        SQLALCHEMY_DATABASE_URI = 'postgresql://postgres:tiger@localhost:5432/my_chat_app'
         SQLALCHEMY_TRACK_MODIFICATIONS = False
         REDIS_URL = "redis://localhost:6379"
         GOOGLE_OAUTH_CLIENT_ID = os.getenv("GOOGLE_OAUTH_CLIENT_ID")
