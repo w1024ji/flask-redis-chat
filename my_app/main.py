@@ -1,9 +1,13 @@
-from flask import Blueprint, render_template, jsonify
+from flask import Blueprint, render_template, jsonify, request, redirect, url_for, current_app, flash
 from flask_login import current_user, login_required
 import re
 from collections import Counter
 import requests
 from bs4 import BeautifulSoup
+import os
+import uuid
+from PIL import Image
+from my_app import db
 
 main = Blueprint('main', __name__)
 
@@ -56,7 +60,39 @@ def word_ranks_api():
     top_words = get_top_words()
     return jsonify(top_words)
 
-@main.route('/profile')
+def save_picture(form_picture):
+    random_hex = uuid.uuid4().hex[:8]
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_fn = random_hex + f_ext
+    picture_path = os.path.join(current_app.root_path, 'static/profile_pics', picture_fn)
+
+    output_size = (150, 150)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+
+    return picture_fn
+
+@main.route('/profile', methods=['GET', 'POST'])
 @login_required
 def profile():
+    if request.method == 'POST':
+        if 'profile_image' not in request.files:
+            flash('No file part')
+            return redirect(request.url)
+        
+        file = request.files['profile_image']
+        
+        if file.filename == '':
+            flash('No selected file')
+            return redirect(request.url)
+        
+        if file:
+            filename = save_picture(file)
+            current_user.profile_image = filename
+            db.session.commit()
+            
+            flash('Your profile has been updated!')
+            return redirect(url_for('main.profile'))
+
     return render_template('profile.html', title='My Profile')
