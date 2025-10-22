@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, jsonify
-from flask_login import current_user
+from flask_login import current_user, login_required
 import re
 from collections import Counter
 import requests
@@ -56,3 +56,7 @@ def word_ranks_api():
     top_words = get_top_words()
     return jsonify(top_words)
 
+@main.route('/profile')
+@login_required
+def profile():
+    return render_template('profile.html', title='My Profile')

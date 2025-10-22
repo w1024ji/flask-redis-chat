@@ -14,7 +14,6 @@ auth = Blueprint('auth', __name__)
 # --- User Loader ---
 @login_manager.user_loader
 def load_user(user_id):
-    """Loads user from the database."""
     return User.query.get(int(user_id))
 
 # --- Google OAuth Setup ---

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f4f4; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 10px; box-shadow: 0 4px 8px rgba(0,0,0,0.1); text-align: center; width: 350px; }
+        .profile-image {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%; /* Makes the image circular */
+            object-fit: cover;   /* Prevents the image from being stretched */
+            margin-bottom: 20px;
+            border: 4px solid #eee;
+        }
+        h1 { margin-top: 0; color: #333; }
+        p { color: #666; font-size: 1.2em; }
+        .home-link { display: inline-block; margin-top: 25px; padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <!-- The profile image from the database -->
+        
+        <img class="profile-image" src="{{ url_for('static', filename='profile_pics/' + current_user.profile_image) }}" alt="Profile Picture">
+
+        <!-- The nickname from the database -->
+        <h1>{{ current_user.nickname }}</h1>
+        
+        <p>Welcome to your profile page!</p>
+        
+        <a href="{{ url_for('main.index') }}" class="home-link">Back to Chat</a>
+    </div>
+</body>
+</html>
