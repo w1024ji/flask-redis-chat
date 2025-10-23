@@ -40,7 +40,7 @@
         <img class="profile-image" src="{{ url_for('static', filename='profile_pics/' + current_user.profile_image) }}" alt="Profile Picture">
 
         <h1>{{ current_user.nickname }}</h1>
-        <p>Your Email: {{ current_user.oauth_provider }}</p>
+        <p>Your OAuth: {{ current_user.oauth_provider }}</p>
 
         <form method="POST" action="" enctype="multipart/form-data">
             <div>
