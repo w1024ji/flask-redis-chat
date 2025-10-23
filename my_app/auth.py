@@ -33,7 +33,10 @@ def google_authorized():
     user_info = resp.json()
     user = User.query.filter_by(social_id=f"google_{user_info['id']}").first()
     if not user:
-        user = User(social_id=f"google_{user_info['id']}", nickname=user_info['name'])
+        user = User(
+            social_id=f"google_{user_info['id']}", 
+            nickname=user_info['name'], 
+            oauth_provider='Google')
         db.session.add(user)
         db.session.commit()
     login_user(user)
@@ -55,7 +58,10 @@ def github_authorized():
     user_info = resp.json()
     user = User.query.filter_by(social_id=f"github_{user_info['id']}").first()
     if not user:
-        user = User(social_id=f"github_{user_info['id']}", nickname=user_info['login'])
+        user = User(
+            social_id=f"github_{user_info['id']}", 
+            nickname=user_info['login'],
+            oauth_provider='Github')
         db.session.add(user)
         db.session.commit()
     login_user(user)
@@ -99,7 +105,10 @@ def kakao_authorized():
 
     user = User.query.filter_by(social_id=social_id_str).first()
     if not user:
-        user = User(social_id=social_id_str, nickname=kakao_nickname)
+        user = User(
+            social_id=social_id_str, 
+            nickname=kakao_nickname,
+            oauth_provider='Kakao')
         db.session.add(user)
         db.session.commit()
     
