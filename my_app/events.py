@@ -78,5 +78,5 @@ def handle_message(message):
             'message': msg_text
         }
         # Broadcast the message. The JS will see a username and put it on the left side.
-        emit('chat message', user_message, broadcast=True, include_self=False)
+        emit('chat message', user_message, broadcast=True)
 
