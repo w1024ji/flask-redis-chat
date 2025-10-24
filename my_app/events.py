@@ -11,7 +11,7 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 if GOOGLE_API_KEY:
     try:
         genai.configure(api_key=GOOGLE_API_KEY)
-        model = genai.GenerativeModel('gemini-pro')
+        model = genai.GenerativeModel('gemini-2.5-flash')
         print("Gemini model loaded successfully.")
     except Exception as e:
         print(f"WARNING: Could not configure Gemini. LLM-Bot will be disabled. Error: {e}")
