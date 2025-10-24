@@ -4,22 +4,107 @@
     <meta charset="UTF-8">
     <title>Flask-Redis Chat</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; display: flex; flex-direction: column; height: 100vh; }
-        header { padding: 10px; background: #333; color: white; display: flex; justify-content: space-between; align-items: center; }
-        header a { color: white; text-decoration: none; padding: 8px 15px; background: #555; border-radius: 5px; }
-        #chat-window { flex-grow: 1; overflow-y: auto; padding: 10px; }
-        #messages { list-style-type: none; margin: 0; padding: 0; }
-        #messages li { padding: 8px 12px; }
-        #messages li:nth-child(odd) { background: #eee; }
-        #chat-form { display: flex; padding: 10px; }
-        #message-input { flex-grow: 1; border: 1px solid #ccc; padding: 10px; border-radius: 5px; }
-        #chat-form button { margin-left: 10px; padding: 10px 20px; }
+        /* Basic Setup */
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0; 
+            display: flex; 
+            flex-direction: column; 
+            height: 100vh; 
+            background-color: #f4f4f4;
+        }
+
+        /* Header Styles */
+        header { 
+            padding: 10px 20px; 
+            background: #333; 
+            color: white; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            flex-shrink: 0; /* Prevents header from shrinking */
+        }
+        header a { 
+            color: white; 
+            text-decoration: none; 
+            padding: 8px 15px; 
+            background: #555; 
+            border-radius: 5px; 
+            margin-left: 10px;
+        }
+        header span {
+            margin-right: 15px;
+        }
+
+        /* Main container for the two chat windows */
+        #chat-container {
+            display: flex;
+            flex-grow: 1; /* Allows this container to fill the remaining space */
+            overflow: hidden; /* Prevents container from overflowing */
+        }
+
+        /* Individual Chat Section Styling */
+        .chat-section {
+            flex: 1; /* Each section takes up 50% of the space */
+            display: flex;
+            flex-direction: column; /* Stack message window and form vertically */
+            padding: 10px;
+            box-sizing: border-box; /* Include padding in width calculation */
+        }
+        .chat-section:first-child {
+            border-right: 2px solid #ddd;
+        }
+
+        /* Message Window Styling */
+        .chat-window {
+            flex-grow: 1;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .messages-list { 
+            list-style-type: none; 
+            margin: 0; 
+            padding: 0; 
+        }
+        .messages-list li { 
+            padding: 8px 12px; 
+            border-bottom: 1px solid #eee;
+        }
+        .messages-list li:last-child {
+            border-bottom: none;
+        }
+
+        /* Form and Input Styling */
+        .chat-form { 
+            display: flex; 
+            margin-top: 10px;
+        }
+        .chat-form input { 
+            flex-grow: 1; 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            border-radius: 5px; 
+        }
+        .chat-form button { 
+            margin-left: 10px; 
+            padding: 10px 20px; 
+            cursor: pointer;
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #444;
+        }
+
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
 </head>
 <body>
     <header>
-        <h1>Flask Real-Time Chat</h1>
+        <h1>Flask Chat App</h1>
         <div>
             {% if user.is_authenticated %}
                 <span>Welcome, {{ user.nickname }}!</span>
@@ -34,44 +119,96 @@
         </div>
     </header>
 
-    <div id="chat-window">
-        <ul id="messages"></ul>
+    <div id="chat-container">
+
+        <div id="realtime-chat" class="chat-section">
+            <h2>Real-Time Chat</h2>
+            <div id="chat-window" class="chat-window">
+                <ul id="messages" class="messages-list"></ul>
+            </div>
+            <form id="chat-form" class="chat-form" action="">
+                {% if user.is_authenticated %}
+                    <input id="message-input" autocomplete="off" placeholder="Enter message..." />
+                    <button>Send</button>
+                {% else %}
+                    <input id="message-input" placeholder="Please log in to chat" disabled />
+                    <button disabled>Send</button>
+                {% endif %}
+            </form>
+        </div>
+
+        <div id="llm-chat" class="chat-section">
+            <h2>Chat with LLM-Bot</h2>
+            <div id="llm-chat-window" class="chat-window">
+                <ul id="llm-messages" class="messages-list">
+                    <li>LLM-Bot: Hello! Ask me anything.</li>
+                </ul>
+            </div>
+            <form id="llm-form" class="chat-form" action="">
+                <input id="llm-message-input" autocomplete="off" placeholder="Talk to the bot..." />
+                <button>Send</button>
+            </form>
+        </div>
+
     </div>
-    
-    <form id="chat-form" action="">
-        {% if user.is_authenticated %}
-            <input id="message-input" autocomplete="off" placeholder="Enter message..." /><button>Send</button>
-        {% else %}
-            <input id="message-input" autocomplete="off" placeholder="Please log in to chat" disabled /><button disabled>Send</button>
-        {% endif %}
-    </form>
     
     <script>
         const socket = io();
-        
-        // 로그인 상태일 때만 메시지 폼 이벤트를 설정합니다.
+
+        // --- Real-Time Chat Logic (Left Side) ---
         {% if user.is_authenticated %}
-            const form = document.getElementById('chat-form');
-            const input = document.getElementById('message-input');
-            
-            form.addEventListener('submit', (e) => {
+            const realTimeForm = document.getElementById('chat-form');
+            const realTimeInput = document.getElementById('message-input');
+            const messages = document.getElementById('messages');
+            const chatWindow = document.getElementById('chat-window');
+
+            realTimeForm.addEventListener('submit', (e) => {
                 e.preventDefault();
-                if (input.value) {
-                    socket.emit('chat message', input.value);
-                    input.value = '';
+                if (realTimeInput.value) {
+                    socket.emit('chat message', { data: realTimeInput.value });
+                    realTimeInput.value = '';
                 }
             });
         {% endif %}
 
-        const messages = document.getElementById('messages');
-        const chatWindow = document.getElementById('chat-window');
+        // --- LLM Bot Chat Logic (Right Side) ---
+        const llmForm = document.getElementById('llm-form');
+        const llmInput = document.getElementById('llm-message-input');
+        const llmMessages = document.getElementById('llm-messages');
+        const llmChatWindow = document.getElementById('llm-chat-window');
 
-        socket.on('chat message', (msg) => {
+        llmForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (llmInput.value) {
+                // Add user's message to the LLM chat window immediately
+                const userMsgItem = document.createElement('li');
+                userMsgItem.textContent = 'You: ' + llmInput.value;
+                llmMessages.appendChild(userMsgItem);
+                
+                // Send the message to the backend for the bot to process
+                socket.emit('chat message', { data: '@llm ' + llmInput.value });
+                llmInput.value = '';
+                llmChatWindow.scrollTop = llmChatWindow.scrollHeight;
+            }
+        });
+
+        // --- Universal Message Handler ---
+        socket.on('chat message', (data) => {
             const item = document.createElement('li');
-            item.textContent = msg;
-            messages.appendChild(item);
-            chatWindow.scrollTop = chatWindow.scrollHeight;
+            item.textContent = data.user + ': ' + data.message;
+            
+            // If the message is from the bot, put it on the right side
+            if (data.user === 'LLM-Bot') {
+                llmMessages.appendChild(item);
+                llmChatWindow.scrollTop = llmChatWindow.scrollHeight;
+            } 
+            // Otherwise, it's a user message, so put it on the left side
+            else if (document.getElementById('messages')) {
+                document.getElementById('messages').appendChild(item);
+                document.getElementById('chat-window').scrollTop = document.getElementById('chat-window').scrollHeight;
+            }
         });
     </script>
 </body>
 </html>
+
