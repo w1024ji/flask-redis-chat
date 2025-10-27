@@ -13,10 +13,10 @@ if GOOGLE_API_KEY:
         model = genai.GenerativeModel('gemini-2.5-flash')
         print("Gemini model loaded successfully.")
     except Exception as e:
-        print(f"WARNING: Could not configure Gemini. LLM-Bot will be disabled. Error: {e}")
+        print(f"WARNING: Could not configure Gemini. Error: {e}")
         model = None
 else:
-    print("WARNING: GOOGLE_API_KEY environment variable not set. LLM-Bot will be disabled.")
+    print("WARNING: GOOGLE_API_KEY environment variable not set.")
     model = None
 
 @socketio.on('connect')
@@ -42,7 +42,6 @@ def handle_message(message):
             prompt = msg_text[4:].strip()
             print(f"Sending prompt to LLM: '{prompt}'")
             try:
-                # Call the Gemini API
                 response = model.generate_content(prompt)
                 bot_response_text = response.text
             except Exception as e:
@@ -53,8 +52,7 @@ def handle_message(message):
             'user': 'LLM-Bot',
             'message': bot_response_text
         }
-        # Broadcast the message. The JS will see 'LLM-Bot' and put it on the right side.
-        emit('chat message', bot_message, broadcast=True)
+        emit('chat message', bot_message, to=request.sid)
 
     # --- Real-Time Chat Logic ---
     elif current_user.is_authenticated:
@@ -65,6 +63,5 @@ def handle_message(message):
             'message': msg_text,
             'profile_image': current_user.profile_image
         }
-        # Broadcast the message. The JS will see a username and put it on the left side.
         emit('chat message', user_message, broadcast=True)
 
