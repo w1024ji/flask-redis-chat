@@ -4,7 +4,6 @@ from . import socketio
 import os
 import google.generativeai as genai
 from flask import request
-# from models import User
 
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -29,19 +28,8 @@ def handle_connect():
 def handle_disconnect():
     print('Client disconnected.')
 
-# @socketio.on('chat message')
-# def handle_message(msg):
-#     if current_user.is_authenticated:
-#         message_with_sender = f"{current_user.nickname}: {msg}"
-#         print(f'Message from {current_user.nickname}: {msg}')
-#         emit('chat message', message_with_sender, broadcast=True)
-
 @socketio.on('chat message')
 def handle_message(message):
-    """
-    Handles all incoming chat messages from both chat windows.
-    The frontend JavaScript decides where to place the final message.
-    """
     msg_text = message.get('data', '').strip()
     if not msg_text:
         return 
@@ -61,7 +49,6 @@ def handle_message(message):
                 print(f"Error calling Gemini API: {e}")
                 bot_response_text = "Sorry, I'm having trouble thinking right now."
         
-        # Package the bot's response in the required format
         bot_message = {
             'user': 'LLM-Bot',
             'message': bot_response_text
@@ -75,7 +62,8 @@ def handle_message(message):
         
         user_message = {
             'user': current_user.nickname,
-            'message': msg_text
+            'message': msg_text,
+            'profile_image': current_user.profile_image
         }
         # Broadcast the message. The JS will see a username and put it on the left side.
         emit('chat message', user_message, broadcast=True)

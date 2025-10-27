@@ -98,6 +98,24 @@
             text-align: center;
             color: #444;
         }
+        .message-item {
+            display: flex; 
+            align-items: center; 
+            padding: 8px 12px;
+            border-bottom: 1px solid #eee;
+        }
+        .message-item:last-child {
+            border-bottom: none;
+        }
+        .profile-pic-chat {
+            width: 30px; 
+            height: 30px;
+            border-radius: 50%; 
+            object-fit: cover; 
+            margin-right: 10px; 
+        }
+        .message-content {
+        }
 
     </style>
     <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"></script>
@@ -195,7 +213,20 @@
         // --- Universal Message Handler ---
         socket.on('chat message', (data) => {
             const item = document.createElement('li');
-            item.textContent = data.user + ': ' + data.message;
+            item.classList.add('message-item');
+
+            const img = document.createElement('img');
+            img.classList.add('profile-pic-chat');
+            const imageFilename = (data.user === 'LLM-Bot') ? 'default_bot.jpg' : data.profile_image;
+            img.src = `/static/profile_pics/${imageFilename}`;
+            img.alt = data.user;
+
+            const content = document.createElement('div');
+            content.classList.add('message-content');
+            content.textContent = data.user + ': ' + data.message;
+
+            item.appendChild(img);
+            item.appendChild(content);
             
             // If the message is from the bot, put it on the right side
             if (data.user === 'LLM-Bot') {
